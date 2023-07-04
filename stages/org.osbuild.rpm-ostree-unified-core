@@ -1,0 +1,42 @@
+#!/usr/bin/python3
+"""
+Build an ostree container native image from a manifest
+"""
+
+
+import os
+import subprocess
+import sys
+
+import osbuild.api
+from osbuild.util import ostree
+
+CAPABILITIES = ["CAP_MAC_ADMIN", "CAP_NET_ADMIN", "CAP_SYS_PTRACE"]
+
+
+SCHEMA = """
+"additionalProperties": false,
+"properties": {
+  "manifest": {
+    "description": "Path to the manifest file to use",
+    "type": "string"
+  }
+}
+"""
+
+
+def main(tree, options):
+    manifest = options.get("manifest", [])
+
+    subprocess.run(["mkdir", "-p", "repo"], check=True)
+    subprocess.run(["ostree", "init", "--repo", "repo", "--mode", "bare-user"], check=True)
+    subprocess.run(["mkdir", "-p", "cache"], check=True)
+
+    subprocess.run(["rpm-ostree", "compose", "tree", "--unified-core", "--repo=repo", "--cachedir=cache",
+                        manifest], check=True)
+
+
+if __name__ == '__main__':
+    args = osbuild.api.arguments()
+    r = main(args["tree"], args["options"])
+    sys.exit(r)
